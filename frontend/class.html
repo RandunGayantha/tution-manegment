@@ -1,0 +1,78 @@
+<div class="main">
+    <div class="topbar"><h1>📖 Classes</h1></div>
+
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;">
+
+        <div class="card">
+            <div class="card-header"><span class="card-title">➕ Add Class</span></div>
+            <form method="POST">
+                <div class="form-grid">
+                    <div class="form-group form-full">
+                        <label>Class Name *</label>
+                        <input type="text" name="class_name" required placeholder="e.g. Maths Grade 10">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject</label>
+                        <select name="subject">
+                            <option>Mathematics</option><option>Science</option>
+                            <option>English</option><option>ICT</option>
+                            <option>Physics</option><option>Chemistry</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Teacher</label>
+                        <select name="teacher_id">
+                            <option value="0">-- No Teacher --</option>
+                            <option value="1">Teacher Name (Subject)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-full">
+                        <label>Schedule</label>
+                        <input type="text" name="schedule" placeholder="e.g. Mon/Wed 4pm-6pm">
+                    </div>
+                    <div class="form-group">
+                        <label>Max Students</label>
+                        <input type="number" name="max_students" value="30" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Fee (Rs.)</label>
+                        <input type="number" name="fee" placeholder="2500" step="0.01">
+                    </div>
+                </div>
+                <br>
+                <button type="submit" name="add_class" class="btn btn-primary">Add Class</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><span class="card-title">All Classes</span></div>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Class</th><th>Teacher</th><th>Schedule</th><th>Fee</th><th>Enrolled/Max</th><th>Full?</th><th>Status</th><th>Act</th></tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>Maths Grade 10</strong><br>
+                        <small style="color:#888;">Mathematics</small></td>
+                    <td>Saman Kumara</td>
+                    <td style="font-size:12px;">Mon/Wed 4pm-6pm</td>
+                    <td>Rs. 2,500.00</td>
+                    <td>28 / 30</td>
+                    <td>
+                        <span class="badge badge-paid">OPEN</span>
+                    </td>
+                    <td><span class="badge badge-active">ACTIVE</span></td>
+                    <td>
+                        <a href="#" class="btn btn-danger btn-sm">Del</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <small style="color:#888;margin-top:10px;display:block;">
+                💡 <strong>IsClassFull()</strong> and <strong>GetClassStudentCount()</strong> SQL functions used here
+            </small>
+        </div>
+    </div>
+</div>
+</body></html>
