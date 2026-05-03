@@ -6,6 +6,121 @@
     <title>enrollments</title>
 </head>
 <body>
-    
+    <div class="main">
+    <div class="topbar">
+        <h1>📋 Enrollments</h1>
+        <!-- Static placeholder for total count -->
+        <span class="topbar-date">Total: 10</span>
+    </div>
+
+    <!-- Example Alert Message Placeholder -->
+    <div class="alert alert-success">SUCCESS: Student enrolled successfully!</div>
+
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;">
+
+        <!-- Enroll Form using Stored Procedure -->
+        <div class="card">
+            <div class="card-header"><span class="card-title">➕ Enroll Student</span></div>
+            <form method="POST">
+                <div class="form-grid">
+                    <div class="form-group form-full">
+                        <label>Select Student *</label>
+                        <select name="student_id" required>
+                            <option value="">-- Choose Student --</option>
+                            <!-- Static placeholder options -->
+                            <option value="1">John Doe (Grade 10)</option>
+                            <option value="2">Jane Smith (Grade 11)</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-full">
+                        <label>Select Class *</label>
+                        <select name="class_id" required>
+                            <option value="">-- Choose Class --</option>
+                            <!-- Static placeholder options -->
+                            <option value="1">Mathematics - Rs.2500.00</option>
+                            <option value="2" style="color:red;">Science - Rs.3000.00 [FULL]</option>
+                        </select>
+                    </div>
+                </div>
+                <br>
+                <button type="submit" name="enroll" class="btn btn-success">Enroll Now</button>
+            </form>
+
+            <div style="margin-top:16px;padding:12px;background:#e8eaf6;border-radius:6px;font-size:12px;">
+                <strong>⚡ Stored Procedure Used:</strong><br>
+                <code>EXEC EnrollStudent @p_student_id, @p_class_id</code><br><br>
+                The procedure:<br>
+                ✅ Checks if class is full<br>
+                ✅ Checks duplicate enrollment<br>
+                ✅ Returns success/error message
+            </div>
+        </div>
+
+        <!-- Enrollments List -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">All Enrollments</span>
+                <form method="GET" style="display:flex;gap:8px;">
+                    <select name="student_id" style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:13px;">
+                        <option value="">All Students</option>
+                        <!-- Static placeholder options -->
+                        <option value="1">John Doe</option>
+                        <option value="2">Jane Smith</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                    <a href="enrollments.php" class="btn btn-sm" style="background:#eee;">Clear</a>
+                </form>
+            </div>
+
+            <div style="overflow-y:auto;max-height:420px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Class</th>
+                        <th>Enrolled On</th>
+                        <th>Fee</th>
+                        <th>Payment</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Static placeholder rows -->
+                    <tr>
+                        <td>1</td>
+                        <td><strong>John Doe</strong></td>
+                        <td>Mathematics<br>
+                            <small style="color:#888;">Math</small>
+                        </td>
+                        <td>2026-05-01</td>
+                        <td>Rs. 2,500.00</td>
+                        <td><span class="badge badge-paid">PAID</span></td>
+                        <td>
+                            <a href="#" class="btn btn-success btn-sm">Pay</a>
+                            <a href="#" class="btn btn-danger btn-sm">Del</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td><strong>Jane Smith</strong></td>
+                        <td>Science<br>
+                            <small style="color:#888;">Sci</small>
+                        </td>
+                        <td>2026-05-02</td>
+                        <td>Rs. 3,000.00</td>
+                        <td><span class="badge badge-pending">PENDING</span></td>
+                        <td>
+                            <a href="#" class="btn btn-success btn-sm">Pay</a>
+                            <a href="#" class="btn btn-danger btn-sm">Del</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
