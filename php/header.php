@@ -116,6 +116,7 @@ tr:hover td { background:#f5f5ff; }
     transition:all 0.2s; text-decoration:none; display:inline-block;
 }
 .btn-primary { background:#1a237e; color:#fff; }
+.btn-reset { background:#c62828; color:#fff; }
 .btn-primary:hover { background:#0d1757; }
 .btn-success { background:#2e7d32; color:#fff; }
 .btn-success:hover { background:#1b5e20; }
