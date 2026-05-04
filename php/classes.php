@@ -3,38 +3,60 @@ require_once 'db.php';
 $db = getDB();
 $msg = '';
 
+# Calling SQL Server stored procedure for class creation
 if(isset($_POST['add_class'])) {
-    $name    = $db->real_escape_string(trim($_POST['class_name']));
-    $subject = $db->real_escape_string(trim($_POST['subject']));
+    $name    = trim($_POST['class_name']);
+    $subject = trim($_POST['subject']);
     $tid     = (int)$_POST['teacher_id'];
-    $sched   = $db->real_escape_string(trim($_POST['schedule']));
+    $sched   = trim($_POST['schedule']);
     $max     = (int)$_POST['max_students'];
     $fee     = (float)$_POST['fee'];
 
-    $sql = "INSERT INTO classes (class_name,subject,teacher_id,schedule,max_students,fee)
-            VALUES ('$name','$subject',$tid,'$sched',$max,$fee)";
-    if($db->query($sql)) {
-        $msg = ['type'=>'success','text'=>"Class '$name' created!"];
+    // Handle No Teacher case
+    $tid_param = ($tid == 0) ? null : $tid;
+
+    // ✅ Validation BEFORE try
+    if(!$name){
+        $msg = ['type'=>'error','text'=>'Class name is required'];
     } else {
-        $msg = ['type'=>'error','text'=>$db->error];
+
+        try {
+            $stmt = $db->prepare("EXEC AddClass ?, ?, ?, ?, ?, ?");
+            $stmt->execute([$name, $subject, $tid_param, $sched, $max, $fee]);
+
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $proc_msg = $result['message'] ?? 'No response';
+
+            if(str_starts_with($proc_msg, 'SUCCESS')) {
+                $msg = ['type'=>'success','text'=>"Class '$name' created successfully!"];
+            } else {
+                $msg = ['type'=>'error','text'=> $proc_msg];
+            }
+
+        } catch (PDOException $e) {
+            $msg = ['type'=>'error','text'=>$e->getMessage()];
+        }
+
     }
 }
 
 if(isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
-    $db->query("UPDATE classes SET status='inactive' WHERE class_id=$id");
-    $msg = ['type'=>'success','text'=>'Class deactivated.'];
+    try {
+        $stmt = $db->prepare("UPDATE classes SET status='inactive' WHERE class_id=?");
+        if($stmt->execute([$id])) {
+            $msg = ['type'=>'success','text'=>"Class ID $id deactivated successfully"];
+        }
+    } catch (PDOException $e) {
+        $msg = ['type'=>'error','text'=>$e->getMessage()];
+    }
 }
 
-$teachers = $db->query("SELECT * FROM teachers WHERE status='active' ORDER BY full_name");
-$classes  = $db->query("
-    SELECT c.*, t.full_name AS teacher_name,
-           GetClassStudentCount(c.class_id) AS enrolled,
-           IsClassFull(c.class_id) AS is_full
-    FROM classes c
-    LEFT JOIN teachers t ON c.teacher_id = t.teacher_id
-    ORDER BY c.class_id DESC
-");
+$teachersList = $db->query("SELECT * FROM teachers WHERE status='active' ORDER BY full_name")->fetchAll(PDO::FETCH_ASSOC);
+$classesList = $db->query("
+    SELECT * FROM vw_ClassDetails
+    ORDER BY class_id DESC
+")->fetchAll(PDO::FETCH_ASSOC);
 
 include 'header.php';
 ?>
@@ -68,9 +90,9 @@ include 'header.php';
                         <label>Teacher</label>
                         <select name="teacher_id">
                             <option value="0">-- No Teacher --</option>
-                            <?php while($t=$teachers->fetch_assoc()): ?>
+                            <?php foreach($teachersList as $t): ?>
                             <option value="<?= $t['teacher_id'] ?>"><?= htmlspecialchars($t['full_name']) ?> (<?= $t['subject'] ?>)</option>
-                            <?php endwhile; ?>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group form-full">
@@ -87,7 +109,12 @@ include 'header.php';
                     </div>
                 </div>
                 <br>
-                <button type="submit" name="add_class" class="btn btn-primary">Add Class</button>
+               <button type="submit" name="add_class" class="btn btn-primary">Add Class</button>
+
+                <small style="color:#888;display:block;margin-top:10px;">
+                    💡 Stored Procedure Used:
+                    <code>EXEC AddClass @p_class_name, @p_subject, @p_teacher_id, @p_schedule, @p_max, @p_fee</code>
+                </small>
             </form>
         </div>
 
@@ -98,7 +125,7 @@ include 'header.php';
                     <tr><th>#</th><th>Class</th><th>Teacher</th><th>Schedule</th><th>Fee</th><th>Enrolled/Max</th><th>Full?</th><th>Status</th><th>Act</th></tr>
                 </thead>
                 <tbody>
-                <?php while($cl=$classes->fetch_assoc()): ?>
+                <?php foreach($classesList as $cl): ?>
                 <tr>
                     <td><?= $cl['class_id'] ?></td>
                     <td><strong><?= htmlspecialchars($cl['class_name']) ?></strong><br>
@@ -121,7 +148,7 @@ include 'header.php';
                            class="btn btn-danger btn-sm">Del</a>
                     </td>
                 </tr>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
                 </tbody>
             </table>
             <small style="color:#888;margin-top:10px;display:block;">
