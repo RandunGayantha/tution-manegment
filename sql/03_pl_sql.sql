@@ -109,70 +109,12 @@ END
 -- STORED PROCEDURE 2: Record a Payment
 -- Updates payment status after recording
 -- ============================================
-IF OBJECT_ID('RecordPayment', 'P') IS NOT NULL DROP PROCEDURE RecordPayment;
-GO
-
-CREATE PROCEDURE RecordPayment
-    @p_enroll_id  INT,
-    @p_amount     DECIMAL(10,2),
-    @p_method     VARCHAR(20),
-    @p_message    VARCHAR(200) OUTPUT
-AS
-BEGIN
-    DECLARE @v_fee DECIMAL(10,2);
-    DECLARE @v_exists INT = 0;
-
-    SELECT @v_exists = COUNT(*) FROM enrollments WHERE enroll_id = @p_enroll_id;
-
-    IF @v_exists = 0
-    BEGIN
-        SET @p_message = 'ERROR: Enrollment not found.';
-    END
-    ELSE
-    BEGIN
-        -- Get class fee
-        SELECT @v_fee = c.fee
-        FROM enrollments e
-        JOIN classes c ON e.class_id = c.class_id
-        WHERE e.enroll_id = @p_enroll_id;
-
-        -- Insert payment
-        INSERT INTO payments (enroll_id, amount, payment_date, method)
-        VALUES (@p_enroll_id, @p_amount, CAST(GETDATE() AS DATE), @p_method);
-
-        -- Update enrollment payment status
-        IF @p_amount >= @v_fee
-        BEGIN
-            UPDATE enrollments SET payment_status = 'paid' WHERE enroll_id = @p_enroll_id;
-            SET @p_message = 'SUCCESS: Full payment recorded. Status updated to PAID.';
-        END
-        ELSE
-        BEGIN
-            UPDATE enrollments SET payment_status = 'pending' WHERE enroll_id = @p_enroll_id;
-            SET @p_message = 'SUCCESS: Partial payment of Rs.' + CAST(@p_amount AS VARCHAR) + ' recorded.';
-        END
-    END
-END
-GO
-
 
 -- ============================================
 -- STORED PROCEDURE 3: Get Student Report
 -- Returns result set directly
 -- ============================================
-IF OBJECT_ID('StudentReport', 'P') IS NOT NULL DROP PROCEDURE StudentReport;
-GO
 
-CREATE PROCEDURE StudentReport
-    @p_student_id INT
-AS
-BEGIN
-    SELECT c.class_name, c.subject, c.schedule, c.fee, e.payment_status, e.enroll_date
-    FROM enrollments e
-    JOIN classes c ON e.class_id = c.class_id
-    WHERE e.student_id = @p_student_id;
-END
-GO
 
 -- ============================================
 -- STORED PROCEDURE 4: Add Class
@@ -215,24 +157,6 @@ GO
 -- ============================================
 -- FUNCTION 1: Get Total Fees Paid by a Student
 -- ============================================
-IF OBJECT_ID('GetStudentTotalPaid', 'FN') IS NOT NULL DROP FUNCTION GetStudentTotalPaid;
-GO
-
-CREATE FUNCTION GetStudentTotalPaid(@p_student_id INT)
-RETURNS DECIMAL(10,2)
-AS
-BEGIN
-    DECLARE @v_total DECIMAL(10,2) = 0.00;
-
-    SELECT @v_total = ISNULL(SUM(p.amount), 0)
-    FROM payments p
-    JOIN enrollments e ON p.enroll_id = e.enroll_id
-    WHERE e.student_id = @p_student_id;
-
-    RETURN @v_total;
-END
-GO
-
 
 -- ============================================
 -- FUNCTION 2: Count Students in a Class
@@ -278,21 +202,8 @@ GO
 -- ============================================
 -- TRIGGER 1: Log new student registration
 -- ============================================
-IF OBJECT_ID('trg_after_student_insert', 'TR') IS NOT NULL DROP TRIGGER trg_after_student_insert;
-GO
 
-CREATE TRIGGER trg_after_student_insert
-ON students
-AFTER INSERT
-AS
-BEGIN
-    INSERT INTO activity_log (action_type, table_name, description, action_time)
-    SELECT 'INSERT', 'students',
-           'New student registered: ' + full_name + ' (ID:' + CAST(student_id AS VARCHAR) + ')',
-           GETDATE()
-    FROM inserted;
-END
-GO
+
 
 
 -- ============================================
@@ -321,34 +232,10 @@ GO
 -- TRIGGER 3: Prevent deleting active teacher
 -- who still has active classes
 -- ============================================
-IF OBJECT_ID('trg_before_teacher_delete', 'TR') IS NOT NULL DROP TRIGGER trg_before_teacher_delete;
-GO
 
-CREATE TRIGGER trg_before_teacher_delete
-ON teachers
-INSTEAD OF DELETE
-AS
-BEGIN
-    DECLARE @v_class_count INT;
-    SELECT @v_class_count = COUNT(*)
-    FROM classes c
-    JOIN deleted d ON c.teacher_id = d.teacher_id
-    WHERE c.status = 'active';
-
-    IF @v_class_count > 0
-    BEGIN
-        RAISERROR ('Cannot delete teacher who still has active classes!', 16, 1);
-        ROLLBACK TRANSACTION;
-        RETURN;
-    END
 
     -- If no error, proceed with delete
-    DELETE FROM teachers WHERE teacher_id IN (SELECT teacher_id FROM deleted);
-END
-GO
 
-SELECT 'All T-SQL objects created successfully!' AS status;
-GO
 
 
 -- ============================================
