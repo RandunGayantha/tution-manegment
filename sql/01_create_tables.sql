@@ -16,6 +16,23 @@ Go
 
 
 -- 1. Students Table
+CREATE TABLE students (
+    student_id INT IDENTITY(1,1) PRIMARY KEY, 
+    full_name VARCHAR(255) NOT NULL, 
+    email VARCHAR(100) UNIQUE,
+    phone VARCHAR(15) CHECK (LEN(phone) >= 10), 
+    grade VARCHAR(20) NOT NULL,
+    address VARCHAR(255),
+    dob DATE,
+    guardian_name VARCHAR(255),
+    guardian_phone VARCHAR(15),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_at DATETIME DEFAULT GETDATE()
+);
+
+    
 
 -- 2. Teachers Table
 CREATE TABLE teachers (
