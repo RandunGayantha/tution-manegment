@@ -13,3 +13,87 @@ CREATE TABLE students (
     password VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT GETDATE()
 );
+
+
+
+CREATE PROCEDURE sp_AddStudent
+    @FullName VARCHAR(255),
+    @Email VARCHAR(100),
+    @Phone VARCHAR(15),
+    @Grade VARCHAR(20),
+    @Address VARCHAR(255),
+    @DOB DATE,
+    @GName VARCHAR(255),
+    @GPhone VARCHAR(15),
+    @Username VARCHAR(50),
+    @Password VARCHAR(255)
+AS
+BEGIN
+    INSERT INTO students (full_name, email, phone, grade, 
+    address, dob, guardian_name, guardian_phone, status, 
+    username, password)
+    VALUES (@FullName, @Email, @Phone, @Grade, @Address, 
+    @DOB, @GName, @GPhone, 'active', @Username, @Password);
+END;
+
+
+
+CREATE TRIGGER trg_DeleteStudentCascade
+ON students
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DELETE FROM payments 
+    WHERE enroll_id IN (
+        SELECT enroll_id FROM enrollments 
+        WHERE student_id IN (SELECT student_id FROM deleted)
+    );
+    DELETE FROM enrollments 
+    WHERE student_id IN (SELECT student_id FROM deleted);
+
+    DELETE FROM students 
+    WHERE student_id IN (SELECT student_id FROM deleted);
+END;
+
+
+CREATE FUNCTION fn_GetStudentBalance (@StudentID INT)
+RETURNS DECIMAL(10, 2)
+AS
+BEGIN
+    DECLARE @TotalFee DECIMAL(10, 2) = 0;
+    DECLARE @TotalPaid DECIMAL(10, 2) = 0;
+    DECLARE @Balance DECIMAL(10, 2) = 0;
+
+    SELECT @TotalFee = ISNULL(SUM(c.fee), 0)
+    FROM enrollments e
+    JOIN classes c ON e.class_id = c.class_id
+    WHERE e.student_id = @StudentID;
+
+    SELECT @TotalPaid = ISNULL(SUM(p.amount), 0)
+    FROM payments p
+    JOIN enrollments e ON p.enroll_id = e.enroll_id
+    WHERE e.student_id = @StudentID;
+
+    SET @Balance = @TotalFee - @TotalPaid;
+
+    RETURN @Balance;
+END;
+
+
+
+CREATE VIEW vw_StudentFinancialSummary AS
+SELECT 
+    s.student_id, 
+    s.full_name, 
+    s.email, 
+    s.phone, 
+    s.grade, 
+    s.status, 
+    s.username,
+    s.password,
+    dbo.fn_GetStudentBalance(s.student_id) AS calculated_balance,
+    ISNULL((SELECT SUM(p.amount) FROM payments p 
+            JOIN enrollments e ON p.enroll_id = e.enroll_id 
+            WHERE e.student_id = s.student_id), 0) AS total_paid
+FROM students s;
