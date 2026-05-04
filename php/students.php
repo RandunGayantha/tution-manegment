@@ -85,7 +85,7 @@ if(isset($_POST['add_student'])) {
 if(isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
 
-    // Call Triger 1
+    // Call Triger 1 trg_DeleteStudentCascade
     $sql = "DELETE FROM students WHERE student_id = ?";
     sqlsrv_query($db, $sql, array($id));
 
