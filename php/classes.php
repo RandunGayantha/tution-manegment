@@ -1,40 +1,53 @@
 <?php
 require_once 'db.php';
-$db = getDB();
+
+$db = getPDO(); 
 $msg = '';
 
+
 if(isset($_POST['add_class'])) {
-    $name    = $db->real_escape_string(trim($_POST['class_name']));
-    $subject = $db->real_escape_string(trim($_POST['subject']));
+
+    $name    = trim($_POST['class_name']);
+    $subject = trim($_POST['subject']);
     $tid     = (int)$_POST['teacher_id'];
-    $sched   = $db->real_escape_string(trim($_POST['schedule']));
+    $sched   = trim($_POST['schedule']);
     $max     = (int)$_POST['max_students'];
     $fee     = (float)$_POST['fee'];
 
-    $sql = "INSERT INTO classes (class_name,subject,teacher_id,schedule,max_students,fee)
-            VALUES ('$name','$subject',$tid,'$sched',$max,$fee)";
-    if($db->query($sql)) {
+    try {
+        $stmt = $db->prepare("
+            INSERT INTO classes (class_name, subject, teacher_id, schedule, max_students, fee)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+
+        $stmt->execute([$name, $subject, $tid, $sched, $max, $fee]);
+
         $msg = ['type'=>'success','text'=>"Class '$name' created!"];
-    } else {
-        $msg = ['type'=>'error','text'=>$db->error];
+
+    } catch (PDOException $e) {
+        $msg = ['type'=>'error','text'=>$e->getMessage()];
     }
 }
 
 if(isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
-    $db->query("UPDATE classes SET status='inactive' WHERE class_id=$id");
+
+    $stmt = $db->prepare("UPDATE classes SET status='inactive' WHERE class_id=?");
+    $stmt->execute([$id]);
+
     $msg = ['type'=>'success','text'=>'Class deactivated.'];
 }
 
-$teachers = $db->query("SELECT * FROM teachers WHERE status='active' ORDER BY full_name");
-$classes  = $db->query("
+$teachers = $db->query("SELECT * FROM teachers WHERE status='active' ORDER BY full_name")
+               ->fetchAll(PDO::FETCH_ASSOC);
+$classes = $db->query("
     SELECT c.*, t.full_name AS teacher_name,
-           GetClassStudentCount(c.class_id) AS enrolled,
-           IsClassFull(c.class_id) AS is_full
+           dbo.GetClassStudentCount(c.class_id) AS enrolled,
+           dbo.IsClassFull(c.class_id) AS is_full
     FROM classes c
     LEFT JOIN teachers t ON c.teacher_id = t.teacher_id
     ORDER BY c.class_id DESC
-");
+")->fetchAll(PDO::FETCH_ASSOC);
 
 include 'header.php';
 ?>
@@ -68,9 +81,11 @@ include 'header.php';
                         <label>Teacher</label>
                         <select name="teacher_id">
                             <option value="0">-- No Teacher --</option>
-                            <?php while($t=$teachers->fetch_assoc()): ?>
-                            <option value="<?= $t['teacher_id'] ?>"><?= htmlspecialchars($t['full_name']) ?> (<?= $t['subject'] ?>)</option>
-                            <?php endwhile; ?>
+                           <?php foreach($teachers as $t): ?>
+    <option value="<?= $t['teacher_id'] ?>">
+        <?= htmlspecialchars($t['full_name']) ?> (<?= $t['subject'] ?>)
+    </option>
+<?php endforeach; ?>
                         </select>
                     </div>
                     <div class="form-group form-full">
@@ -97,32 +112,46 @@ include 'header.php';
                 <thead>
                     <tr><th>#</th><th>Class</th><th>Teacher</th><th>Schedule</th><th>Fee</th><th>Enrolled/Max</th><th>Full?</th><th>Status</th><th>Act</th></tr>
                 </thead>
-                <tbody>
-                <?php while($cl=$classes->fetch_assoc()): ?>
-                <tr>
-                    <td><?= $cl['class_id'] ?></td>
-                    <td><strong><?= htmlspecialchars($cl['class_name']) ?></strong><br>
-                        <small style="color:#888;"><?= $cl['subject'] ?></small></td>
-                    <td><?= htmlspecialchars($cl['teacher_name'] ?? '-') ?></td>
-                    <td style="font-size:12px;"><?= $cl['schedule'] ?></td>
-                    <td>Rs. <?= number_format($cl['fee'],2) ?></td>
-                    <td><?= $cl['enrolled'] ?> / <?= $cl['max_students'] ?></td>
-                    <td>
-                        <?php if($cl['is_full']=='YES'): ?>
-                            <span class="badge badge-overdue">FULL</span>
-                        <?php else: ?>
-                            <span class="badge badge-paid">OPEN</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><span class="badge badge-<?= $cl['status'] ?>"><?= strtoupper($cl['status']) ?></span></td>
-                    <td>
-                        <a href="?delete=<?= $cl['class_id'] ?>"
-                           onclick="return confirm('Deactivate this class?')"
-                           class="btn btn-danger btn-sm">Del</a>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
-                </tbody>
+              <tbody>
+<?php foreach($classes as $cl): ?>
+<tr>
+    <td><?= $cl['class_id'] ?></td>
+
+    <td>
+        <strong><?= htmlspecialchars($cl['class_name']) ?></strong><br>
+        <small style="color:#888;"><?= $cl['subject'] ?></small>
+    </td>
+
+    <td><?= htmlspecialchars($cl['teacher_name'] ?? '-') ?></td>
+
+    <td style="font-size:12px;"><?= $cl['schedule'] ?></td>
+
+    <td>Rs. <?= number_format($cl['fee'],2) ?></td>
+
+    <td><?= $cl['enrolled'] ?> / <?= $cl['max_students'] ?></td>
+
+    <td>
+        <?php if($cl['is_full']=='YES'): ?>
+            <span class="badge badge-overdue">FULL</span>
+        <?php else: ?>
+            <span class="badge badge-paid">OPEN</span>
+        <?php endif; ?>
+    </td>
+
+    <td>
+        <span class="badge badge-<?= $cl['status'] ?>">
+            <?= strtoupper($cl['status']) ?>
+        </span>
+    </td>
+
+    <td>
+        <a href="?delete=<?= $cl['class_id'] ?>"
+           onclick="return confirm('Deactivate this class?')"
+           class="btn btn-danger btn-sm">Del</a>
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
             </table>
             <small style="color:#888;margin-top:10px;display:block;">
                 💡 <strong>IsClassFull()</strong> and <strong>GetClassStudentCount()</strong> SQL functions used here

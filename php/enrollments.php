@@ -1,6 +1,6 @@
 <?php
 require_once 'db.php';
-$db = getDB();
+$db = getPDO();
 $msg = '';
 
 // ENROLL STUDENT using Stored Procedure

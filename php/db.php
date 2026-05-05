@@ -2,7 +2,7 @@
 
 
 define('DB_SERVER', 'MSI\\SQLEXPRESS'); 
-define('DB_NAME', 'tuition_db');
+define('DB_NAME', 'tutiondb');
 
 function getDB() {
    
@@ -33,6 +33,16 @@ function getDB() {
     }
 
     return $conn;
+}
+
+function getPDO() {
+    try {
+        $pdo = new PDO("sqlsrv:Server=" . DB_SERVER . ";Database=" . DB_NAME);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        return $pdo;
+    } catch (PDOException $e) {
+        die("PDO Connection failed: " . $e->getMessage());
+    }
 }
 
 ?>
