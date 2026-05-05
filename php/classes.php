@@ -41,12 +41,8 @@ if(isset($_GET['delete'])) {
 $teachers = $db->query("SELECT * FROM teachers WHERE status='active' ORDER BY full_name")
                ->fetchAll(PDO::FETCH_ASSOC);
 $classes = $db->query("
-    SELECT c.*, t.full_name AS teacher_name,
-           dbo.GetClassStudentCount(c.class_id) AS enrolled,
-           dbo.IsClassFull(c.class_id) AS is_full
-    FROM classes c
-    LEFT JOIN teachers t ON c.teacher_id = t.teacher_id
-    ORDER BY c.class_id DESC
+    SELECT * FROM vw_ClassDetails
+    ORDER BY class_id DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
 
 include 'header.php';
