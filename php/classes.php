@@ -16,9 +16,7 @@ if(isset($_POST['add_class'])) {
 
     try {
         $stmt = $db->prepare("
-            INSERT INTO classes (class_name, subject, teacher_id, schedule, max_students, fee)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
+           EXEC AddClass ?, ?, ?, ?, ?, ?");
 
         $stmt->execute([$name, $subject, $tid, $sched, $max, $fee]);
 

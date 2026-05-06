@@ -40,6 +40,27 @@ while ($mRow = sqlsrv_fetch_array($methodRes, SQLSRV_FETCH_ASSOC)) {
     $methodLabels[] = ucfirst($mRow['method']); 
     $methodData[] = $mRow['count'];
 }
+
+// --- NEW BI DATA: Revenue Forecast ---
+$biSql = "SELECT * FROM vw_IncomePrediction";
+$biRes = sqlsrv_query($db, $biSql);
+$biLabels = []; $biExpected = []; $biOutstanding = [];
+while($row = sqlsrv_fetch_array($biRes, SQLSRV_FETCH_ASSOC)) {
+    $biLabels[] = $row['grade'];
+    $biExpected[] = $row['Expected_Monthly_Income'];
+    $biOutstanding[] = $row['Outstanding_Amount'];
+}
+
+// --- NEW DATA MINING: Risk Analysis ---
+$miningSql = "{call sp_AnalyzeStudentRisk}";
+$miningRes = sqlsrv_query($db, $miningSql);
+$riskCounts = ['Safe' => 0, 'Warning' => 0, 'Critical' => 0];
+while($row = sqlsrv_fetch_array($miningRes, SQLSRV_FETCH_ASSOC)) {
+    if(strpos($row['Risk_Status'], 'Safe') !== false) $riskCounts['Safe']++;
+    elseif(strpos($row['Risk_Status'], 'Warning') !== false) $riskCounts['Warning']++;
+    else $riskCounts['Critical']++;
+}
+
 // ================= ADD STUDENT =================
 if(isset($_POST['add_student'])) {
     $name    = trim($_POST['full_name']);
@@ -750,6 +771,55 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
+});
+</script>
+</div>
+<div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+<div class="card p-4 shadow-sm" style="max-width: 850px; width: 100%;">
+    <h5 class="fw-bold mb-4">💰 Revenue Forecast (BI)</h5>
+    <div style="height: 200px;">
+        <canvas id="revenueForecastChart"></canvas>
+    </div>
+    <small class="text-muted mt-2">Prediction based on current enrollments</small>
+</div>
+
+<div class="card p-4 shadow-sm" style="max-width: 360px; width: 100%;">
+    <h5 class="fw-bold mb-4">⚠️ Retention Risk (Mining)</h5>
+    <div style="height: 200px;">
+        <canvas id="riskMiningChart"></canvas>
+    </div>
+    <div class="mt-3 small text-center">
+        <span class="text-success">● Safe: <?= $riskCounts['Safe'] ?></span> | 
+        <span class="text-warning">● Warning: <?= $riskCounts['Warning'] ?></span> | 
+        <span class="text-danger">● Critical: <?= $riskCounts['Critical'] ?></span>
+    </div>
+</div>
+
+<script>
+// BI Revenue Forecast Chart
+new Chart(document.getElementById('revenueForecastChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+        labels: <?= json_encode($biLabels) ?>,
+        datasets: [
+            { label: 'Expected', data: <?= json_encode($biExpected) ?>, backgroundColor: '#4f46e5' },
+            { label: 'Outstanding', data: <?= json_encode($biOutstanding) ?>, backgroundColor: '#ef4444' }
+        ]
+    },
+    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+});
+
+// Data Mining Risk Chart
+new Chart(document.getElementById('riskMiningChart').getContext('2d'), {
+    type: 'pie',
+    data: {
+        labels: ['Safe', 'Warning', 'Critical'],
+        datasets: [{
+            data: [<?= $riskCounts['Safe'] ?>, <?= $riskCounts['Warning'] ?>, <?= $riskCounts['Critical'] ?>],
+            backgroundColor: ['#16a34a', '#f59e0b', '#dc2626']
+        }]
+    },
+    options: { maintainAspectRatio: false }
 });
 </script>
 </div>
